@@ -1,0 +1,32 @@
+server:
+  port: 1094
+
+spring:
+  kafka:
+    producer:
+      bootstrap-servers: localhost:2001
+      client-id: waas-sample-producer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: com.confluentproducer.server.serialization.KafkaJsonSchemaSerializerExtension
+      properties:
+        schema.registry.url: http://localhost:2003
+        json.fail.invalid.schema: true
+
+weg:
+  kafka:
+    producer:
+      topics:
+        l2bsa-service-order: dev.tmfapi.serviceOrderingManagement.v4.serviceOrder.notificationEvent
+        dead-letter: back-out
+        agreement: ${weg.kafka.external-prefix}.providerChangeAgreement.notificationEvent
+        enrichProviderChangeAgreement: ${weg.kafka.external-prefix}.enrichProviderChangeAgreement.notificationEvent
+        cancelProviderChangeAgreement: ${weg.kafka.external-prefix}.cancelProviderChangeAgreement.notificationEvent
+        rescheduleProviderChangeAgreement: ${weg.kafka.external-prefix}.rescheduleProviderChangeAgreement.notificationEvent
+    external-prefix: test.tmfapi.agreementManagement.v5
+
+logging:
+  level:
+    com.fasterxml.jackson: DEBUG
+    io.confluent.kafka.serializers: DEBUG
+    org.zalando.logbook: TRACE
+    reactor.netty.http.client: DEBUG
