@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.openapitools.model.sdp.SdpAmendServiceOrder;
+import org.openapitools.model.sdp.SdpCancelServiceOrder;
 import org.openapitools.model.sdp.SdpServiceOrder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -28,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class KafkaMessageController {
 
-  private static final String DOMAIN = "som";
+  private static final String DOMAIN = "l2fttc";
   private final ObjectMapper objectMapper;
 
   private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -36,15 +38,38 @@ public class KafkaMessageController {
   @PostMapping("/send/{eventType}")
   public ResponseEntity<String> sendMessage(@PathVariable String eventType, @RequestBody String payload) {
     try {
-      Object typedPayload = parsePayload(eventType, payload);
+      Object typedPayload = null;
 
       String eventId = UUID.randomUUID().toString();
       String eventTime = OffsetDateTime.now().toString();
-      String topic = "dev.tmfapi.serviceOrderingManagement.v4.serviceOrder.notificationEvent";
-      String correlationId = ((SdpServiceOrder) typedPayload).getId();
+      String topic = null;
+      ProducerRecord<String, Object> producerRecord = null;
+      String correlationId = null;
 
-      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(topic,
-          ((SdpServiceOrder) typedPayload).getId(), typedPayload);
+      switch (eventType) {
+        case "serviceOrderStateChangeEvent", "serviceOrderAttributeValueChangeEvent":
+          typedPayload = parsePayload(eventType, payload, SdpServiceOrder.class);
+          topic = "dev.tmfapi.serviceOrderingManagement.v4.serviceOrder.notificationEvent";
+          producerRecord = new ProducerRecord<>(topic,
+              ((SdpServiceOrder) typedPayload).getId(), typedPayload);
+          correlationId = ((SdpServiceOrder) typedPayload).getId();
+          break;
+        case "cancelServiceOrderStateChangeEvent":
+          typedPayload = parsePayload(eventType, payload, SdpCancelServiceOrder.class);
+          topic = "dev.tmfapi.serviceOrderingManagement.v4.cancelServiceOrder.notificationEvent";
+          producerRecord = new ProducerRecord<>(topic,
+              ((SdpCancelServiceOrder) typedPayload).getId(), typedPayload);
+          correlationId = ((SdpCancelServiceOrder) typedPayload).getId();
+          break;
+        case "amendServiceOrderStateChangeEvent":
+          typedPayload = parsePayload(eventType, payload, SdpAmendServiceOrder.class);
+          topic = "dev.tmfapi.serviceOrderingManagement.v4.amendServiceOrder.notificationEvent";
+          producerRecord = new ProducerRecord<>(topic,
+              ((SdpAmendServiceOrder) typedPayload).getId(), typedPayload);
+          correlationId = ((SdpAmendServiceOrder) typedPayload).getId();
+          break;
+        default:log.error("WOW!");
+      }
 
       addHeaders(producerRecord, eventId, eventTime, eventType, correlationId);
 
@@ -66,6 +91,8 @@ public class KafkaMessageController {
   {
     EVENT_TYPE_MAPPING.put("serviceOrderStateChangeEvent", "ServiceOrderStateChangeEvent");
     EVENT_TYPE_MAPPING.put("serviceOrderAttributeValueChangeEvent", "ServiceOrderAttributeValueChangeEvent");
+    EVENT_TYPE_MAPPING.put("cancelServiceOrderStateChangeEvent", "CancelServiceOrderStateChangeEvent");
+    EVENT_TYPE_MAPPING.put("amendServiceOrderStateChangeEvent", "AmendServiceOrderStateChangeEvent");
   }
 
   private void addHeaders(ProducerRecord<String, Object> producerRecord, String eventId, String eventTime,
@@ -78,11 +105,11 @@ public class KafkaMessageController {
     producerRecord.headers().add("correlationId", correlationId.getBytes(StandardCharsets.UTF_8));
   }
 
-  private Object parsePayload(String eventType, String payload) {
+  private Object parsePayload(String eventType, String payload, Class<?> clazz) throws JsonProcessingException {
     try {
       Map<String, Object> payloadMap = objectMapper.readValue(payload, Map.class);
 
-      return objectMapper.convertValue(payloadMap, SdpServiceOrder.class);
+      return objectMapper.convertValue(payloadMap, clazz);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to parse payload for event type: " + eventType, e);
     }
