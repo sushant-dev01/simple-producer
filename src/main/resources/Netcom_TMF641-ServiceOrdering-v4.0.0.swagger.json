@@ -2936,6 +2936,163 @@
         }
       }
     },
+    "Message": {
+      "description": "A message described as a combination of a text and a code with additional info where required.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "Predefined code corresponding to the message",
+          "type": "string",
+          "example": "00"
+        },
+        "text": {
+          "description": "Predefined text describing the message corresponding to the code",
+          "type": "string",
+          "example": "Lorem ipsum dolor"
+        },
+        "additionalInformation": {
+          "description": "Additional textual information for the message",
+          "type": "string",
+          "example": "Lorem ipsum dolor"
+        },
+        "messageSource": {
+          "description": "Predefined text describing the message corresponding to the code (e.g. Related)",
+          "type": "string",
+          "example": "Related"
+        }
+      }
+    },
+    "JeopardyAlert": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Extensible"
+        },
+        {
+          "type": "object",
+          "description": "A JeopardyAlert represents a predicted exception during a process that may cause a risk to complete successfully the process.",
+          "properties": {
+            "id": {
+              "description": "Identifier of the JeopardyAlert",
+              "type": "string",
+              "example": "2d7ed5fd-9f62-4211-bc84-357f5f7b80f5"
+            },
+            "alertDate": {
+              "description": "A date time( DateTime). The date that the alert issued",
+              "type": "string",
+              "format": "date-time",
+              "example": "2023-01-01T08:00:00+01:00"
+            },
+            "name": {
+              "description": "A string used to give a name to the jeopardy alert",
+              "type": "string",
+              "example": "alert name"
+            },
+            "jeopardyAlertMessage": {
+              "description": "Text and code that represents the message of the jeopardy alert",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Message"
+              },
+              "example": []
+            },
+            "estimatedAlertEndDate": {
+              "description": "A date time(DateTime). The estimated date of the alert ending",
+              "type": "string",
+              "format": "date-time",
+              "example": "2023-01-01T08:00:00+01:00"
+            },
+            "exception": {
+              "description": "The exception associated with this jeopardy alert",
+              "type": "string"
+            }
+          }
+        }
+      ],
+      "discriminator": {
+        "propertyName": "@type",
+        "mapping": {
+          "JeopardyAlert": "#/components/schemas/JeopardyAlert"
+        }
+      }
+    },
+    "Milestone": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Extensible"
+        },
+        {
+          "type": "object",
+          "description": "Milestone represents an action or event marking a significant change or stage in a process like an order process.",
+          "properties": {
+            "id": {
+              "description": "Identifier of the Milestone",
+              "type": "string",
+              "example": "2d7ed5fd-9f62-4211-bc84-357f5f7b80f5"
+            },
+            "milestoneDate": {
+              "description": "A date time( DateTime). The date that the milestone happens",
+              "type": "string",
+              "format": "date-time",
+              "example": "2023-01-01T08:00:00+01:00"
+            },
+            "name": {
+              "description": "A string used to give a name to the milestone",
+              "type": "string",
+              "example": "milestone name"
+            },
+            "milestoneMessage": {
+              "description": "Text and code that represents the message of the milestone",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Message"
+              },
+              "example": []
+            },
+            "relatedState": {
+              "description": "Documents the state of the related API Resource at the time of the Milestone",
+              "type": "string",
+              "example": "active"
+            }
+          }
+        }
+      ],
+      "discriminator": {
+        "propertyName": "@type",
+        "mapping": {
+          "Milestone": "#/definitions/Milestone"
+        }
+      }
+    },
+    "ServiceOrderMilestone": {
+      "description": "A ServiceOrderMilestone represents an action or event marking a significant change or stage in processing of a service order.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Milestone"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "@type",
+        "mapping": {
+          "ServiceOrderMilestone": "#/definitions/ServiceOrderMilestone"
+        }
+      }
+    },
+    "ServiceOrderJeopardyAlert": {
+      "description": "A ServiceOrderJeopardyAlert represents a predicted exception during a service order processing that would brings risk to complete successfully the order.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/JeopardyAlert"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "@type",
+        "mapping": {
+          "ServiceOrderJeopardyAlert": "#/definitions/ServiceOrderJeopardyAlert"
+        }
+      }
+    },
     "ServiceOrder": {
       "type": "object",
       "properties": {
@@ -3055,6 +3212,33 @@
         "state": {
           "$ref": "#/definitions/ServiceOrderStateType",
           "description": "State of the order: described in the state-machine diagram"
+        },
+        "stateChangeMessage": {
+          "description": "Message for the state change described as a combination of a text and a code",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
+        },
+        "stateChangeDate": {
+          "description": "The date and time the state changed",
+          "type": "string",
+          "format": "date-time",
+          "example": "2024-01-01T12:00:00+01:00"
+        },
+        "serviceOrderJeopardyAlert": {
+          "description": "List of ServiceOrderJeopardyAlerts. A ServiceOrderJeopardyAlert represents a predicted exception during a service order processing that would brings risk to complete successfully the order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOrderJeopardyAlert"
+          }
+        },
+        "serviceOrderMilestone": {
+          "description": "List of ServiceOrderMilestones. A ServiceOrderMilestone represents an action or event marking a significant change or stage in processing of a service order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOrderMilestone"
+          }
         },
         "@baseType": {
           "type": "string",
@@ -3888,7 +4072,27 @@
         "reserved",
         "inactive",
         "active",
-        "terminated"
+        "terminated",
+        "standby",
+        "alarm",
+        "available.active",
+        "available.operational",
+        "available.unassigned",
+        "reserved.assigned",
+        "reserved.booked",
+        "reserved.testMode",
+        "unknown",
+        "suspended.bySales",
+        "suspended.decommissioned",
+        "suspended.defective",
+        "suspended.inactive",
+        "suspended.inPreparation",
+        "suspended.inReview",
+        "suspended.locked",
+        "suspended.notPlanned",
+        "suspended.planned",
+        "suspended.rejected",
+        "suspended.underConstruction"
       ]
     },
     "TaskStateType": {
